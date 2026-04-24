@@ -109,28 +109,39 @@ def solve(board, domains):
     return False
 
 
-#sample sudoku board
-board = [
-    [0, 0, 0, 2, 6, 0, 7, 0, 1],
-    [6, 8, 0, 0, 7, 0, 0, 9, 0],
-    [1, 9, 0, 0, 0, 4, 5, 0, 0],
-    [8, 2, 0, 1, 0, 0, 0, 4, 0],
-    [0, 0, 4, 6, 0, 2, 9, 0, 0],
-    [0, 5, 0, 0, 0, 3, 0, 2, 8],
-    [0, 0, 9, 3, 0, 0, 0, 7, 4],
-    [0, 4, 0, 0, 5, 0, 0, 3, 6],
-    [7, 0, 3, 0, 1, 8, 0, 0, 0]
-]
 
-#initialize domains
-domains = initialize_domains(board)
-
-#solve the sample board above and print it in the same format
-if solve(board, domains):
-    for row in board:
-        print(row)
-else:
-    print("No Solution Exists")
+#main function to run the solver
+def main():
+    print("Attempting to solve:")
 
 
+    #the hardest sudoku puzzle
+    puzzle = [
+        [0, 0, 0, 2, 6, 0, 7, 0, 1],
+        [6, 8, 0, 0, 7, 0, 0, 9, 0],
+        [1, 9, 0, 0, 0, 4, 5, 0, 0],
+        [8, 2, 0, 1, 0, 0, 0, 4, 0],
+        [0, 0, 4, 6, 0, 2, 9, 0, 0],
+        [0, 5, 0, 0, 0, 3, 0, 2, 8],
+        [0, 0, 9, 3, 0, 0, 0, 7, 4],
+        [0, 4, 0, 0, 5, 0, 0, 3, 6],
+        [7, 0, 3, 0, 1, 8, 0, 0, 0]
+    ]
     
+    for row in puzzle:
+        print(row)
+
+    if solve(puzzle):
+        print("Solution found:")
+        for row in puzzle:
+            print(row)
+    else:
+        print("No Solution Exists")
+
+
+
+
+   
+
+if __name__ == "__main__":
+    main()
