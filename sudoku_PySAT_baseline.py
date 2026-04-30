@@ -1,5 +1,7 @@
 from pysat.solvers import Cadical195, Glucose42, MapleChrono
 import numpy as np
+import pandas as pd
+import time
 
 class SudokuSolver:
     def __init__(self, puzzle, solver):
@@ -151,35 +153,44 @@ class SudokuSolver:
             return None
 
 def main():
-    print("Attempting to solve:")
-    puzzle = [
-        [0, 0, 0, 2, 6, 0, 7, 0, 1],
-        [6, 8, 0, 0, 7, 0, 0, 9, 0],
-        [1, 9, 0, 0, 0, 4, 5, 0, 0],
-        [8, 2, 0, 1, 0, 0, 0, 4, 0],
-        [0, 0, 4, 6, 0, 2, 9, 0, 0],
-        [0, 5, 0, 0, 0, 3, 0, 2, 8],
-        [0, 0, 9, 3, 0, 0, 0, 7, 4],
-        [0, 4, 0, 0, 5, 0, 0, 3, 6],
-        [7, 0, 3, 0, 1, 8, 0, 0, 0]
-    ]
+    df = pd.read_csv('dataset.csv')
+    results = {
+        'easy': [],
+        'medium': [],
+        'hard': [],
+        'invalid': []
+    }
+    
+    for idx, row in df.iterrows():
+        puzzle = row['puzzle']
+        difficulty = row['difficulty']
+        
+        input = []
+        for i in range(9):
+            row = [int(puzzle[i * 9 + j]) for j in range(9)]
+            input.append(row)
+        
+        # Choose ONE solver to use
+        solver = SudokuSolver(input, Cadical195()) # CaDiCaL 1.9.5 SAT solver
+        # solver = SudokuSolver(input, Glucose42()) # Glucose 4.2.1 SAT solver
+        # solver = SudokuSolver(input, MapleChrono()) # MapleLCMDistChronoBT SAT solver
 
-    for row in puzzle:
-        print(row)
+        times = []
 
-    # Choose ONE solver to use
-    # solver = SudokuSolver(puzzle, Cadical195()) # CaDiCaL 1.9.5 SAT solver
-    # solver = SudokuSolver(puzzle, Glucose42()) # Glucose 4.2.1 SAT solver
-    solver = SudokuSolver(puzzle, MapleChrono()) # MapleLCMDistChronoBT SAT solver
-
-    solution = solver.solve()
-
-    if solution:
-        print("Solution found:")
-        for row in solution:
-            print(row)
-    else:
-        print("No solution exists.")
+        # Run the solver 5 times and save the AVERAGE time
+        for run in range(5):
+            start_time = time.perf_counter()
+            output = solver.solve()
+            end_time = time.perf_counter()
+            times.append(end_time - start_time)
+        
+        results[difficulty].append(sum(times) / 5)
+    
+    # Print results
+    print(f'Average runtime on EASY sudokus: {sum(results['easy']) / len(results['easy'])} (seconds)')
+    print(f'Average runtime on MEDIUM sudokus: {sum(results['medium']) / len(results['medium'])} (seconds)')
+    print(f'Average runtime on HARD sudokus: {sum(results['hard']) / len(results['hard'])} (seconds)')
+    print(f'Average runtime on INVALID sudokus: {sum(results['invalid']) / len(results['invalid'])} (seconds)')
 
 if __name__ == "__main__":
     main()
