@@ -1,5 +1,24 @@
 # Sudoku Solver using Backtracking with Forward Checking
 
+import pandas as pd
+import time
+
+#these variables are to measure the search effort
+recursive_calls = 0
+assignments = 0
+
+
+#this function is to convert the puzzle string from the csv file into a 9x9 sudoku board
+def string_to_board(puzzle):
+    board = []
+
+    for i in range(0, 81, 9):
+        row = [int(x) for x in puzzle[i:i+9]]
+        board.append(row)
+
+    return board
+
+
 #this function is to find the empty cells in the puzzle. The empty cells are represented by 0
 def empty_cell_finder(board):
 
@@ -11,6 +30,7 @@ def empty_cell_finder(board):
             if board[row][col] == 0:
                 #return the coordinates of that empty cell
                 return row, col
+
     #this happens in the case when the board is solved and there are no empty cells remaining
     return None
 
@@ -75,6 +95,11 @@ def forward_check(domains, row, col, number):
 
 #this is the implementation of the backtracking algorithm with forward checking
 def solve(board, domains):
+    global recursive_calls
+    global assignments
+
+    #this counts each time the solve function is called
+    recursive_calls += 1
 
     #this is to find the next empty cell
     emptycell = empty_cell_finder(board)
@@ -87,6 +112,9 @@ def solve(board, domains):
 
     #try numbers from the domain of that cell
     for number in domains[(row, col)].copy():
+
+        #this counts each temporary assignment made during search
+        assignments += 1
 
         #we set that coordinate to equal the number temporarily
         board[row][col] = number
@@ -109,39 +137,77 @@ def solve(board, domains):
     return False
 
 
+#this function runs the forward checking solver on all puzzles in the csv file
+def run_experiment(csv_file):
+    global recursive_calls
+    global assignments
 
-#main function to run the solver
-def main():
-    print("Attempting to solve:")
+    #this reads the dataset from the csv file
+    df = pd.read_csv(csv_file)
+
+    #this keeps only the easy, medium, and hard puzzles
+    df = df[df["difficulty"].isin(["easy", "medium", "hard"])]
+
+    #this list stores the result for each puzzle
+    results = []
+
+    #this loop goes through each puzzle in the dataset
+    for index, row in df.iterrows():
+
+        #this gets the puzzle string from the csv file
+        puzzle = row["puzzle"]
+
+        #this gets the difficulty level of the puzzle
+        difficulty = row["difficulty"]
+
+        #this converts the puzzle string into a 9x9 board
+        board = string_to_board(puzzle)
+
+        #this initializes the domains for the puzzle
+        domains = initialize_domains(board)
+
+        #this resets the counters before solving each new puzzle
+        recursive_calls = 0
+        assignments = 0
+
+        #this records the start time
+        start_time = time.time()
+
+        #this solves the sudoku board using backtracking with forward checking
+        solved = solve(board, domains)
+
+        #this records the end time
+        end_time = time.time()
+
+        #this stores the results for this puzzle
+        results.append({
+            "puzzle_number": index,
+            "difficulty": difficulty,
+            "solved": solved,
+            "recursive_calls": recursive_calls,
+            "assignments": assignments,
+            "runtime_seconds": end_time - start_time
+        })
+
+    #this converts all results into a pandas dataframe
+    return pd.DataFrame(results)
 
 
-    #the hardest sudoku puzzle
-    puzzle = [
-        [0, 0, 0, 2, 6, 0, 7, 0, 1],
-        [6, 8, 0, 0, 7, 0, 0, 9, 0],
-        [1, 9, 0, 0, 0, 4, 5, 0, 0],
-        [8, 2, 0, 1, 0, 0, 0, 4, 0],
-        [0, 0, 4, 6, 0, 2, 9, 0, 0],
-        [0, 5, 0, 0, 0, 3, 0, 2, 8],
-        [0, 0, 9, 3, 0, 0, 0, 7, 4],
-        [0, 4, 0, 0, 5, 0, 0, 3, 6],
-        [7, 0, 3, 0, 1, 8, 0, 0, 0]
-    ]
-    
-    for row in puzzle:
-        print(row)
+#this runs the experiment on the dataset
+results_df = run_experiment("dataset.csv")
 
-    if solve(puzzle):
-        print("Solution found:")
-        for row in puzzle:
-            print(row)
-    else:
-        print("No Solution Exists")
+#this prints the result for each individual puzzle
+print("Individual Puzzle Results:")
+print(results_df)
 
+#this calculates the average results for each difficulty level
+summary = results_df.groupby("difficulty").agg({
+    "solved": "mean",
+    "recursive_calls": "mean",
+    "assignments": "mean",
+    "runtime_seconds": "mean"
+})
 
-
-
-   
-
-if __name__ == "__main__":
-    main()
+#this prints the average results by difficulty
+print("\nAverage Results by Difficulty:")
+print(summary)
