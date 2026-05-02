@@ -267,35 +267,18 @@ def load_outlines_csv(outlines_csv_path=OUTLINES_CSV_PATH):
 
 def image_path_to_outline_key(image_path, dataset_root=DATASET_ROOT):
     """
-    Convert a project image path into the key used by outlines_sorted.csv.
+    Convert an image path into the key used by outlines_sorted.csv.
 
-    Example
-    -------
-    Input:
-
-        data/raw/sudoku_dataset/images/image30.jpg
-
-    Output:
-
-        images/image30.jpg
-
-    Parameters
-    ----------
-    image_path : str or pathlib.Path
-        Full or relative path to an image inside the dataset root.
-
-    dataset_root : str or pathlib.Path
-        Root of the Sudoku dataset.
-
-    Returns
-    -------
-    key : str
-        Normalized relative key used in outlines_sorted.csv.
+    This supports both relative and absolute paths as long as the image
+    is inside the dataset root.
     """
     image_path = Path(image_path)
     dataset_root = Path(dataset_root)
 
-    relative_path = image_path.relative_to(dataset_root)
+    try:
+        relative_path = image_path.relative_to(dataset_root)
+    except ValueError:
+        relative_path = image_path.resolve().relative_to(dataset_root.resolve())
 
     return normalize_dataset_filepath(str(relative_path))
 
