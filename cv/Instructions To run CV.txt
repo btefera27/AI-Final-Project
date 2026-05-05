@@ -1,0 +1,75 @@
+
+Final integrated Computer Vision pipeline for the Sudoku solvers.
+
+Prerequisites:
+
+Before running this file, make sure the dataset is located at:
+
+    data/raw/sudoku_dataset/
+
+and that the following paths exist:
+
+    data/raw/sudoku_dataset/images/
+    data/raw/sudoku_dataset/outlines_sorted.csv
+
+Also make sure the trained digit classifier exists at:
+
+    data/processed/digit_classifier_svm.joblib
+
+The traind model should be here but if the trained model is missing, run:
+
+    python -m cv.build_digit_dataset
+    python -m cv.train_digit_classifier
+
+Run command: 
+
+    .venv\Scripts\Activate.ps1  (activate venv)
+    python -m cv.build_digit_dataset
+    python -m cv.train_digit_classifier
+    python -m cv.final_cv_pipeline (example test on one image)
+
+Note: build_digit_dataset.py and train_digit_classifier.py are only needed if the trained model is missing or you want to retrain it.
+
+If you want to run the final pipeline on all images and evaluate against the .dat files, use the separate evaluation script:
+    python -m evaluation.evaluate_image_to_board
+
+This file combines all CV stages into one clean pipeline:
+
+    Input image
+        ↓
+    Outline-based Sudoku grid extraction
+        ↓
+    Perspective warp to square grid
+        ↓
+    Split warped grid into 81 cells
+        ↓
+    Empty/nonempty detection for each cell
+        ↓
+    Digit classification for nonempty cells
+        ↓
+    9x9 integer Sudoku board
+
+The output board uses the same representation expected by the solver modules:
+
+    0 = empty cell
+    1-9 = given Sudoku digit
+
+Example output:
+
+    [
+        [0, 0, 0, 7, 0, 0, 0, 8, 0],
+        [0, 9, 0, 0, 0, 3, 1, 0, 0],
+        ...
+    ]
+
+Current final configuration based on evaluation:
+
+    - Grid extraction: dataset-provided outlines from outlines_sorted.csv
+    - Digit classifier: trained SVM model saved as digit_classifier_svm.joblib
+    - Empty/nonempty threshold: 0.08
+    - Confidence threshold: 0.0
+
+Important note:
+    The confidence threshold is kept in the code for extensibility, but our
+    evaluation showed that confidence rejection did not improve exact-board
+    match rate. Therefore, the default is 0.0, meaning no confidence rejection.
