@@ -1,3 +1,8 @@
 numpy
-python-sat
+opencv-python
+scikit-learn
+joblib
 z3-solver
+python-sat[pblib,aiger]
+pandas
+matplotlib
