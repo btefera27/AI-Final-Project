@@ -1,5 +1,9 @@
 from z3 import Solver, Bool, And, Or, Not, Implies, sat, unsat
 import numpy as np
+import pandas as pd
+from multiprocessing import Process, Queue
+import time
+
 class SudokuSolver:
     def __init__(self, puzzle):
         self.puzzle = puzzle
@@ -151,41 +155,67 @@ class SudokuSolver:
         else:
             return None
 
-
-#main function to test the solver
-def main():
-    print("Attempting to solve:")
-    puzzle = [
-        [0, 0, 0, 2, 6, 0, 7, 0, 1],
-        [6, 8, 0, 0, 7, 0, 0, 9, 0],
-        [1, 9, 0, 0, 0, 4, 5, 0, 0],
-        [8, 2, 0, 1, 0, 0, 0, 4, 0],
-        [0, 0, 4, 6, 0, 2, 9, 0, 0],
-        [0, 5, 0, 0, 0, 3, 0, 2, 8],
-        [0, 0, 9, 3, 0, 0, 0, 7, 4],
-        [0, 4, 0, 0, 5, 0, 0, 3, 6],
-        [7, 0, 3, 0, 1, 8, 0, 0, 0]
-    ]
-
-
-    for row in puzzle:
-        print(row)
-
+def timed_run(puzzle, q):
     solver = SudokuSolver(puzzle)
+    start = time.perf_counter()
     solution = solver.solve()
+    runtime = time.perf_counter() - start
 
-    if solution:
-        print("Solution found:")
-        for row in solution:
-            print(row)
-    else:
-        print("No solution exists.")
+    q.put(runtime)
 
+def main():
+    df = pd.read_csv('dataset.csv')
+    results = {
+        'easy': [],
+        'medium': [],
+        'hard': [],
+        'invalid': []
+    }
+    
+    for idx, row in df.iterrows():
+        puzzle = row['puzzle']
+        difficulty = row['difficulty']
+        
+        input = []
+        for i in range(9):
+            row = [int(puzzle[i * 9 + j]) for j in range(9)]
+            input.append(row)
+        
+        times = []
 
+        # Run the solver 5 times and save the AVERAGE time
+        for run in range(5):
+            q = Queue()
 
+            p = Process(
+                target=timed_run,
+                args=(input, q)
+            )
 
+            p.start()
+            # Implement timeout
+            p.join(timeout = 5)
 
-   
+            if p.is_alive():
+                p.terminate()
+                p.join()
+            else:
+                times.append(q.get())
+
+        if times:
+            print(f'{idx}: {sum(times) / len(times)}')
+            results[difficulty].append(sum(times) / len(times))
+        else:
+            print(f'{idx}: N/A')
+
+    # Average runtime (w/ number of puzzles solved)
+    print(f'Easy: {sum(results['easy']) / len(results['easy'])} ({len(results['easy'])})')
+    print(f'Medium: {sum(results['medium']) / len(results['medium'])} ({len(results['medium'])})')
+    print(f'Hard: {sum(results['hard']) / len(results['hard'])} ({len(results['hard'])})')
+    print(f'Invalid: {sum(results['invalid']) / len(results['invalid'])} ({len(results['invalid'])})')
+
+    all = np.concatenate(list(results.values()))
+    print(f'All: {np.mean(all)} ({len(all)})')
 
 if __name__ == "__main__":
     main()

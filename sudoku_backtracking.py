@@ -1,11 +1,13 @@
 # Sudoku Solver using Backtracking Algorithm
 
 import pandas as pd
+from multiprocessing import Process, Queue
+import numpy as np
 import time
 
 #these variables are to measure the search effort of the backtracking algorithm
-recursive_calls = 0
-assignments = 0
+#recursive_calls = 0
+#assignments = 0
 
 #this function is to convert the puzzle string from the csv file into a 9x9 sudoku board
 def string_to_board(puzzle):
@@ -65,11 +67,11 @@ def isValidPlacement(board, row, col, number):
 
 #this is the implementation of the backtracking algorithm
 def solve(board):
-    global recursive_calls
-    global assignments
+    #global recursive_calls
+    #global assignments
 
     #this counts each time the solve function is called
-    recursive_calls += 1
+    #recursive_calls += 1
 
     #this is to find the next empty cell
     emptycell = empty_cell_finder(board)
@@ -85,7 +87,7 @@ def solve(board):
         if isValidPlacement(board, row, col, number):
 
             #this counts each time a number is placed temporarily on the board
-            assignments += 1
+            #assignments += 1
 
             #we set that coordinate to equal the number temporarily
             board[row][col] = number
@@ -102,7 +104,7 @@ def solve(board):
 
 
 #this function runs the backtracking solver on all puzzles in the csv file
-def run_experiment(csv_file):
+def recursion_experiment(csv_file):
     global recursive_calls
     global assignments
 
@@ -154,24 +156,85 @@ def run_experiment(csv_file):
     #this converts all results into a pandas dataframe
     return pd.DataFrame(results)
 
+#this is the helper function for the runtime experiment
+def timed_run(board, q):
+    start = time.perf_counter()
+    solved = solve(board)
+    runtime = time.perf_counter() - start
 
-#this runs the experiment on the dataset
-results_df = run_experiment("dataset.csv")
+    q.put(runtime)
 
-#this prints the result for each individual puzzle
-print("Individual Puzzle Results:")
-print(results_df)
-
-#this calculates the average results for each difficulty level
-summary = results_df.groupby("difficulty").agg({
-    "solved": "mean",
-    "recursive_calls": "mean",
-    "assignments": "mean",
-    "runtime_seconds": "mean"
-})
-
-#this prints the average results by difficulty
-print("\nAverage Results by Difficulty:")
-print(summary)
+def runtime_experiment():
+    df = pd.read_csv('dataset.csv')
+    results = {
+        'easy': [],
+        'medium': [],
+        'hard': [],
+        'invalid': []
+    }
+    
+    for idx, row in df.iterrows():
+        puzzle = row['puzzle']
+        difficulty = row['difficulty']
         
+        input = []
+        for i in range(9):
+            row = [int(puzzle[i * 9 + j]) for j in range(9)]
+            input.append(row)
         
+        times = []
+
+        for run in range(5):
+            q = Queue()
+
+            p = Process(
+                target=timed_run,
+                args=([row[:] for row in input], q)
+            )
+
+            p.start()
+            # Implement timeout
+            p.join(timeout = 5)
+
+            if p.is_alive():
+                p.terminate()
+                p.join()
+            else:
+                times.append(q.get())
+
+        if times:
+            print(f'{idx}: {sum(times) / len(times)}')
+            results[difficulty].append(sum(times) / len(times))
+        else:
+            print(f'{idx}: N/A')
+
+    # Average runtime (w/ number of puzzles solved)
+    print(f'Easy: {sum(results['easy']) / len(results['easy'])} ({len(results['easy'])})')
+    print(f'Medium: {sum(results['medium']) / len(results['medium'])} ({len(results['medium'])})')
+    print(f'Hard: {sum(results['hard']) / len(results['hard'])} ({len(results['hard'])})')
+    print(f'Invalid: {sum(results['invalid']) / len(results['invalid'])} ({len(results['invalid'])})')
+
+    all = np.concatenate(list(results.values()))
+    print(f'All: {np.mean(all)} ({len(all)})')
+
+if __name__ == "__main__":
+    #this runs the recursion experiment on the dataset
+    #results_df = recursion_experiment("dataset.csv")
+
+    #this prints the result for each individual puzzle
+    #print("Individual Puzzle Results:")
+    #print(results_df)
+
+    #this calculates the average results for each difficulty level
+    #summary = results_df.groupby("difficulty").agg({
+    #    "solved": "mean",
+    #    "recursive_calls": "mean",
+    #    "assignments": "mean",
+    #    "runtime_seconds": "mean"
+    #})
+
+    #this prints the average results by difficulty
+    #print("\nAverage Results by Difficulty:")
+    #print(summary)
+
+    runtime_experiment()

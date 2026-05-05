@@ -1,6 +1,7 @@
 from pysat.solvers import Cadical195, Glucose42, MapleChrono
 import numpy as np
 import pandas as pd
+from multiprocessing import Process, Queue
 import time
 
 class SudokuSolver:
@@ -152,6 +153,20 @@ class SudokuSolver:
         else:
             return None
 
+def timed_run(puzzle, solver, q):
+    if solver == "MapleChrono":
+        solver = SudokuSolver(puzzle, MapleChrono())
+    elif solver == "Cadical195":
+        solver = SudokuSolver(puzzle, Cadical195())
+    elif solver == "Glucose42":
+        solver = SudokuSolver(puzzle, Glucose42())
+
+    start = time.perf_counter()
+    solver.solve()
+    runtime = time.perf_counter() - start
+
+    q.put(runtime)
+
 def main():
     df = pd.read_csv('dataset.csv')
     results = {
@@ -170,27 +185,39 @@ def main():
             row = [int(puzzle[i * 9 + j]) for j in range(9)]
             input.append(row)
         
-        # Choose ONE solver to use
-        solver = SudokuSolver(input, Cadical195()) # CaDiCaL 1.9.5 SAT solver
-        # solver = SudokuSolver(input, Glucose42()) # Glucose 4.2.1 SAT solver
-        # solver = SudokuSolver(input, MapleChrono()) # MapleLCMDistChronoBT SAT solver
-
         times = []
 
         # Run the solver 5 times and save the AVERAGE time
         for run in range(5):
-            start_time = time.perf_counter()
-            output = solver.solve()
-            end_time = time.perf_counter()
-            times.append(end_time - start_time)
-        
-        results[difficulty].append(sum(times) / 5)
-    
-    # Print results
-    print(f'Average runtime on EASY sudokus: {sum(results['easy']) / len(results['easy'])} (seconds)')
-    print(f'Average runtime on MEDIUM sudokus: {sum(results['medium']) / len(results['medium'])} (seconds)')
-    print(f'Average runtime on HARD sudokus: {sum(results['hard']) / len(results['hard'])} (seconds)')
-    print(f'Average runtime on INVALID sudokus: {sum(results['invalid']) / len(results['invalid'])} (seconds)')
+            q = Queue()
+
+            p = Process(
+                target=timed_run,
+                args=(input, "Glucose42", q)
+            )
+
+            p.start()
+            # Implement timeout
+            p.join(timeout = 5)
+
+            if p.is_alive():
+                p.terminate()
+                p.join()
+            else:
+                times.append(q.get())
+
+        if times:
+            print(f'{idx}: {sum(times) / len(times)}')
+            results[difficulty].append(sum(times) / len(times))
+
+    # Average runtime (w/ number of puzzles solved)
+    print(f'Easy: {sum(results['easy']) / len(results['easy'])} ({len(results['easy'])})')
+    print(f'Medium: {sum(results['medium']) / len(results['medium'])} ({len(results['medium'])})')
+    print(f'Hard: {sum(results['hard']) / len(results['hard'])} ({len(results['hard'])})')
+    print(f'Invalid: {sum(results['invalid']) / len(results['invalid'])} ({len(results['invalid'])})')
+
+    all = np.concatenate(list(results.values()))
+    print(f'All: {np.mean(all)} ({len(all)})')
 
 if __name__ == "__main__":
     main()
