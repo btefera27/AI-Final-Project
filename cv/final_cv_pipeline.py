@@ -1,6 +1,38 @@
 """
 Final integrated Computer Vision pipeline for the Sudoku solvers.
 
+Prerequisites:
+
+Before running this file, make sure the dataset is located at:
+
+    data/raw/sudoku_dataset/
+
+and that the following paths exist:
+
+    data/raw/sudoku_dataset/images/
+    data/raw/sudoku_dataset/outlines_sorted.csv
+
+Also make sure the trained digit classifier exists at:
+
+    data/processed/digit_classifier_svm.joblib
+
+If the trained model is missing, run:
+
+    python -m cv.build_digit_dataset
+    python -m cv.train_digit_classifier
+
+Run command: 
+
+    .venv\Scripts\Activate.ps1  (activate venv)
+    python -m cv.build_digit_dataset
+    python -m cv.train_digit_classifier
+    python -m cv.final_cv_pipeline (example test on one image)
+
+Note: build_digit_dataset.py and train_digit_classifier.py are only needed if the trained model is missing or you want to retrain it.
+
+If you want to run the final pipeline on all images and evaluate against the .dat files, use the separate evaluation script:
+    python -m evaluation.evaluate_image_to_board
+
 This file combines all CV stages into one clean pipeline:
 
     Input image
