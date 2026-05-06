@@ -12,6 +12,8 @@ and that the following paths exist:
     data/raw/sudoku_dataset/images/
     data/raw/sudoku_dataset/outlines_sorted.csv
 
+Note: The CV dataset is not included in this repository due to size limits; download it separately from https://github.com/wichtounet/sudoku_dataset and place it at data/raw/sudoku_dataset/
+
 Also make sure the trained digit classifier exists at:
 
     data/processed/digit_classifier_svm.joblib
